@@ -49,8 +49,9 @@
 #include "include/panel_auo_qvga_cmd.h"
 #include "include/panel_auo_cx_qvga_cmd.h"
 #include "include/panel_hx8394f_720p_video.h"
+#include "include/panel_ili9881c_720p_video.h"
 
-#define DISPLAY_MAX_PANEL_DETECTION 0
+#define DISPLAY_MAX_PANEL_DETECTION 2
 #define ILI9806E_FWVGA_VIDEO_PANEL_POST_INIT_DELAY 68
 
 enum {
@@ -86,6 +87,7 @@ enum {
 	AUO_QVGA_CMD_PANEL,
 	AUO_CX_QVGA_CMD_PANEL,
 	HX8394F_720P_VIDEO_PANEL,
+	ILI9881C_720P_VIDEO_PANEL,
 	UNKNOWN_PANEL
 };
 
@@ -106,6 +108,7 @@ static struct panel_list supp_panels[] = {
 	{"auo_qvga_cmd", AUO_QVGA_CMD_PANEL},
 	{"auo_cx_qvga_cmd", AUO_CX_QVGA_CMD_PANEL},
 	{"hx8394f_720p_video", HX8394F_720P_VIDEO_PANEL},
+	{"ili9881c_720p_video", ILI9881C_720P_VIDEO_PANEL},
 };
 
 static uint32_t panel_id;
@@ -185,6 +188,29 @@ static int init_panel_data(struct panel_struct *panelstruct,
 				hx8394d_720p_video_timings, TIMING_SIZE);
 		pinfo->mipi.signature = HX8394D_720P_VIDEO_SIGNATURE;
 		break;
+    case ILI9881C_720P_VIDEO_PANEL:
+        panelstruct->paneldata    = &ili9881c_720p_video_panel_data;
+        panelstruct->panelres     = &ili9881c_720p_video_panel_res;
+        panelstruct->color        = &ili9881c_720p_video_color;
+        panelstruct->videopanel   = &ili9881c_720p_video_video_panel;
+        panelstruct->commandpanel = &ili9881c_720p_video_command_panel;
+        panelstruct->state        = &ili9881c_720p_video_state;
+        panelstruct->laneconfig   = &ili9881c_720p_video_lane_config;
+        panelstruct->paneltiminginfo
+                     = &ili9881c_720p_video_timing_info;
+        panelstruct->panelresetseq
+                     = &ili9881c_720p_video_reset_seq;
+        panelstruct->backlightinfo = &ili9881c_720p_video_backlight;
+        pinfo->mipi.panel_cmds
+                    = ili9881c_720p_video_on_command;
+        pinfo->mipi.panel_read_cmds
+			        = &ili9881c_720p_read_id_command;
+        pinfo->mipi.num_of_panel_cmds
+                    = ILI9881C_720P_VIDEO_ON_COMMAND;
+        memcpy(phy_db->timing,
+                ili9881c_720p_video_timings, TIMING_SIZE);
+        pinfo->mipi.signature = ILI9881C_720P_VIDEO_SIGNATURE;
+        break;
         case SHARP_QHD_VIDEO_PANEL:
 		panelstruct->paneldata    = &sharp_qhd_video_panel_data;
 		panelstruct->panelres     = &sharp_qhd_video_panel_res;
@@ -385,11 +411,13 @@ static int init_panel_data(struct panel_struct *panelstruct,
 		panelstruct->backlightinfo = &hx8394f_720p_video_backlight;
 		pinfo->mipi.panel_cmds
 					= hx8394f_720p_video_on_command;
+		pinfo->mipi.panel_read_cmds
+					= &hx8394f_720p_read_id_command;
 		pinfo->mipi.num_of_panel_cmds
 					= HX8394F_720P_VIDEO_ON_COMMAND;
 		memcpy(phy_db->timing,
 					hx8394f_720p_video_timings, TIMING_SIZE);
-		pinfo->mipi.signature = HX8394F_720P_VIDEO_SIGNATURE;
+		pinfo->mipi.signature = 0xFFFF;//HX8394F_720P_VIDEO_SIGNATURE;
 		break;
 	case UNKNOWN_PANEL:
 	default:
@@ -452,7 +480,18 @@ int oem_panel_select(const char *panel_name, struct panel_struct *panelstruct,
 
 				break;
 			default:
-				panel_id = HX8394D_720P_VIDEO_PANEL;
+				if(auto_pan_loop == 0)
+				{
+					panel_id = ILI9881C_720P_VIDEO_PANEL;
+					auto_pan_loop++;
+					break;
+				}
+				if(auto_pan_loop == 1)
+				{
+					panel_id = HX8394F_720P_VIDEO_PANEL;
+					auto_pan_loop++;
+					break;
+				}
 		}
 		break;
 	case HW_PLATFORM_QRD:

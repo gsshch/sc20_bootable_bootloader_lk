@@ -69,17 +69,18 @@ uint32_t secure_readl(uint32_t);
 
 static uint32_t response_value = 0;
 
-uint32_t mdss_dsi_read_panel_signature(uint32_t panel_signature)
+uint32_t mdss_dsi_read_panel_signature(struct mipi_dsi_panel_config *pinfo)
 {
 	uint32_t rec_buf[1];
 	uint32_t *lp = rec_buf, data;
-	int ret = response_value;
+	int ret = 0;
+	if ((pinfo->signature == 0) || (pinfo->signature == 0xFFFF))
+		return ret;
 
 #if (DISPLAY_TYPE_MDSS == 1)
-	if (ret && ret != panel_signature)
-		goto exit_read_signature;
-
-	ret = mipi_dsi_cmds_tx(&read_ddb_start_cmd, 1);
+	if(pinfo->panel_read_cmds == NULL)
+		return 1;
+	ret = mipi_dsi_cmds_tx(pinfo->panel_read_cmds, 1);
 	if (ret)
 		goto exit_read_signature;
 	if (!mdss_dsi_cmds_rx(&lp, 1, 1))
@@ -87,14 +88,11 @@ uint32_t mdss_dsi_read_panel_signature(uint32_t panel_signature)
 
 	data = ntohl(*lp);
 	data = data >> 8;
-	response_value = data;
-	if (response_value != panel_signature)
-		ret = response_value;
+	data = data & 0xffff;
+	if (data != pinfo->signature)
+		ret = 1;
 
 exit_read_signature:
-	/* Keep the non detectable panel at the end and set panel signature 0xFFFF */
-	if ((panel_signature == 0) || (panel_signature == 0xFFFF))
-		ret = 0;
 #endif
 	return ret;
 }
@@ -534,7 +532,7 @@ int mdss_dsi_panel_initialize(struct mipi_dsi_panel_config *pinfo, uint32_t
 			writel(ctrl_mode, MIPI_DSI0_BASE + CTRL);
 			if (!status && target_panel_auto_detect_enabled())
 				status =
-					mdss_dsi_read_panel_signature(pinfo->signature);
+					mdss_dsi_read_panel_signature(pinfo);
 			dprintf(SPEW, "Read panel signature status = 0x%x \n", status);
 		}
 	}
@@ -776,6 +774,7 @@ int mdss_dsi_config(struct msm_fb_panel_data *panel)
 	mipi_pinfo.signature = pinfo->mipi.signature;
 	mipi_pinfo.force_clk_lane_hs = pinfo->mipi.force_clk_lane_hs;
 	mipi_pinfo.cmds_post_tg = pinfo->mipi.cmds_post_tg;
+	mipi_pinfo.panel_read_cmds = pinfo->mipi.panel_read_cmds;
 
 	mdss_dsi_phy_init(&mipi_pinfo, MIPI_DSI0_BASE, DSI0_PHY_BASE);
 	if (pinfo->mipi.dual_dsi)

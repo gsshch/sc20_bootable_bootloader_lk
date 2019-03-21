@@ -158,9 +158,10 @@ void target_early_init(void)
 	/* Do not intilaise UART in case the h/w
 	* is RCM.
 	*/
-	if( board_hardware_id()!= HW_PLATFORM_RCM )
+	if( board_hardware_id()!= HW_PLATFORM_RCM ){
 		uart_dm_init(1, 0, BLSP1_UART0_BASE);
-	else
+		uart_dm_init(2, 0, BLSP1_UART1_BASE);
+	}else
 		return;
 #endif
 
@@ -233,8 +234,8 @@ int target_volume_up()
 /* Return 1 if vol_down pressed */
 uint32_t target_volume_down()
 {
-	if ((board_hardware_id() == HW_PLATFORM_QRD) &&
-			(board_hardware_subtype() == SUB_TYPE_SKUT)) {
+	if (((board_hardware_id() == HW_PLATFORM_QRD) &&
+			(board_hardware_subtype() == SUB_TYPE_SKUT))||((board_hardware_id() == HW_PLATFORM_MTP))) {
 		uint32_t status = 0;
 
 		gpio_tlmm_config(TLMM_VOL_DOWN_BTN_GPIO, 0, GPIO_INPUT, GPIO_PULL_UP, GPIO_2MA, GPIO_ENABLE);
@@ -486,7 +487,7 @@ uint8_t target_panel_auto_detect_enabled()
 
 	switch(board_hardware_id()) {
 	default:
-		ret = 0;
+		ret = 1;
 		break;
 	}
 	return ret;

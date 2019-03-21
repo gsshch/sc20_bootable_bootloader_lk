@@ -185,6 +185,7 @@ struct mipi_panel_info {
 	struct mdss_dsi_phy_ctrl *mdss_dsi_phy_db;
 	struct mdss_dsi_pll_config *dsi_pll_config;
 	struct mipi_dsi_cmd *panel_cmds;
+	struct mipi_dsi_cmd *panel_read_cmds;
 	int num_of_panel_cmds;
 	/* video mode */
 	char pulse_mode_hsa_he;
